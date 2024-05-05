@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from discord import Status , Embed
+from discord import Status 
 import random
 import asyncio
 import re
@@ -11,7 +11,7 @@ TOKEN = 'Your_bot_token' # Remplace it with ur bot token
 
 VERIFIED_ROLE_NAME = 'Wolf'
 ADDITIONAL_ROLE_NAME = '🐺Wolf Supporter'
-BOT_LOGS_CHANNEL_ID = 1191519285953179658 # To send logs 
+BOT_LOGS_CHANNEL_ID = 123456789000000000 # channel ID To send logs 
 
 
 
