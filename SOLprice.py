@@ -1,3 +1,13 @@
+
+"""
+This bot use a coinmarketcap Api to check 
+on solana price and change th bot name to sol price 
+every 10 min to avoid discord errors
+
+you can customize it as you like to watch any other coins in coinmarketcap 
+
+"""
+
 import discord
 import requests
 from discord.ext import commands, tasks
