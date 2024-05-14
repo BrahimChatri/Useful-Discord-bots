@@ -33,7 +33,7 @@ async def on_ready():
 
 @bot.event
 async def on_message(message):
-    if message.author == bot.user:
+    if message.author == bot.user: #ignore message from bot itself
         return
 
     # Define a regular expression for detecting links
