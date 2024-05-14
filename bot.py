@@ -1,5 +1,5 @@
 """
-make sure to install libraries firs by running :
+make sure to install libraries first by running :
 pip install libraries discord
 """
 
@@ -17,7 +17,7 @@ VERIFIED_ROLE_NAME = 'Wolf'  # VERIFIED_ROLE_NAME to trak and give Wolf suppoete
 ADDITIONAL_ROLE_NAME = '🐺Wolf Supporter'
 BOT_LOGS_CHANNEL_ID = 123456789000000000 # channel ID To send logs 
 
-
+  
 
 @bot.event
 async def on_ready():
