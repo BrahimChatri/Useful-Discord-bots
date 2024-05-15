@@ -58,4 +58,4 @@ def get_sol_price():
 
 
 if __name__ == "__main__":
-    bot.run('bot token here')  
+    bot.run('bot token here')  # Remplace it with ur token !!
