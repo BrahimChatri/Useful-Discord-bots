@@ -9,7 +9,7 @@ intents.messages = True
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 # Variable to store the API key and simulate refresh
-api_key = '7c429ccc-8863-4366-9456-6b8fcfc76475'
+api_key = 'coinmarketcup api here '
 
 @bot.event
 async def on_ready():
@@ -58,4 +58,4 @@ def get_sol_price():
 
 
 if __name__ == "__main__":
-    bot.run('MTE1NTk1Mzg1ODEwMzc0NjYzMg.GU-2L5.qi77ivcxMSeTNJZjMLR43tW_wr7YCZ6k3iys_Q')  
+    bot.run('bot token here')  
