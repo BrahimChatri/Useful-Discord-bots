@@ -1,13 +1,3 @@
-
-"""
-This bot use a coinmarketcap Api to check 
-on solana price and change th bot name to sol price 
-every 10 min to avoid discord errors
-
-you can customize it as you like to watch any other coins in coinmarketcap 
-
-"""
-
 import discord
 import requests
 from discord.ext import commands, tasks
@@ -17,13 +7,17 @@ intents.presences = True
 intents.messages = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
-api_key = 'API Key ' # Remplace this with ur coinmarketcap api key 
-TOKEN = "Your bot token here"
+
+# Variable to store the API key and simulate refresh
+api_key = '7c429ccc-8863-4366-9456-6b8fcfc76475'
 
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user.name}')
     track_price.start()
+    activity = discord.Activity(type=discord.ActivityType.watching, name="Solana Price ")
+    await bot.change_presence(activity=activity)
+
 
 @tasks.loop(minutes=10)  # Set the interval for checking the price
 async def track_price():
@@ -31,6 +25,7 @@ async def track_price():
     if sol_price is not None:
         new_bot_name = f'SOL-${sol_price:.2f}'
         await bot.user.edit(username=new_bot_name)
+        print(f"name changed to :{new_bot_name}")
 
 def get_sol_price():
     global api_key
@@ -53,7 +48,6 @@ def get_sol_price():
     except requests.exceptions.HTTPError as e:
         if response.status_code == 401:  # Unauthorized, possibly due to an expired token
             print("Token expired. Refreshing token...")
-            api_key = simulate_refresh(api_key)  # Simulate token refresh
             headers['X-CMC_PRO_API_KEY'] = api_key  # Update the header with the new token
         else:
             print(f'HTTP error: {e}')
@@ -62,10 +56,6 @@ def get_sol_price():
         print(f'Error fetching SOL price: {e}')
         return None
 
-def simulate_refresh(current_token):
-    print("Simulating token refresh...")
-    new_token = 'your_new_token_here'
-    return new_token
 
 if __name__ == "__main__":
-    bot.run(TOKEN)  
+    bot.run('MTE1NTk1Mzg1ODEwMzc0NjYzMg.GU-2L5.qi77ivcxMSeTNJZjMLR43tW_wr7YCZ6k3iys_Q')  
