@@ -8,6 +8,8 @@ Welcome to my collection of Discord bots! Below, you'll find a list of bots that
 Description: This bot use coinmarketcup api to track solana price and change name bace on sol price.
 
 [bot's code.](https://github.com/BrahimChatri/Useful-Discord-bots/blob/main/SOLprice.py)
+Invite it to ur server by [clicking here](https://discord.com/oauth2/authorize?client_id=1155953858103746632)
+
 
 ### Bot 
 Description: this bot has some cool featchers as he can delete all link in messages for clean server no spaming
