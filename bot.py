@@ -1,78 +1,135 @@
-"""
-make sure to install libraries first by running :
-pip install libraries discord
-"""
-
 import discord
 from discord.ext import commands
-from discord import Status 
+from discord import Status
 import random
 import asyncio
-import re
+import re, os
+from dotenv import load_dotenv
 
+
+# Initialize the bot
 bot = commands.Bot(command_prefix='!', intents=discord.Intents.all())
 
-TOKEN = 'Your_bot_token' # Remplace it with ur bot token 
-VERIFIED_ROLE_NAME = 'Wolf'  # VERIFIED_ROLE_NAME to trak and give Wolf suppoeter role 
-ADDITIONAL_ROLE_NAME = '🐺Wolf Supporter'
-BOT_LOGS_CHANNEL_ID = 123456789000000000 # channel ID To send logs 
+load_dotenv()
 
-  
+# Constants
+TOKEN = os.getenv("TOKEN")  # Replace with your actual bot token
+VERIFIED_ROLE_NAME = os.getenv("VERIFIED_ROLE")
+BOT_LOGS_CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
+GAME_COLOR = discord.Color.dark_gold()
+ERROR_COLOR = discord.Color.red()
 
+# Event: on_ready
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user.name}')
     try:
-        synced = await bot.tree.sync() # Sync commands 
-        print(f"synced {len(synced)} commands")
-        activity = discord.Activity(type=discord.ActivityType.watching, name="Messages and Command's")
+        synced = await bot.tree.sync()
+        print(f"Synced {len(synced)} commands")
+
+        activity = discord.Activity(type=discord.ActivityType.watching, name="Messages and Commands")
         await bot.change_presence(activity=activity)
 
     except Exception as e:
-        print(e)
+        print(f"Error syncing commands: {e}")
 
+# Embed Modal
+class EmbedModal(discord.ui.Modal):
+    def __init__(self):
+        super().__init__(title='Create an Embed')
+        self.title_input = discord.ui.TextInput(label='Title', required=True)
+        self.description_input = discord.ui.TextInput(label='Description', style=discord.TextStyle.paragraph, required=True)
+        self.image_url_input = discord.ui.TextInput(label='Image URL', required=False)
+        self.thumbnail = discord.ui.TextInput(label='"yes" To set server icon as Thumbnail', required=False)
+        self.fields_input = discord.ui.TextInput(label='Fields (name:value,...)', style=discord.TextStyle.paragraph, required=False)
+
+        self.add_item(self.title_input)
+        self.add_item(self.description_input)
+        self.add_item(self.thumbnail)
+        self.add_item(self.image_url_input)
+        self.add_item(self.fields_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        embed = discord.Embed(
+            title=self.title_input.value,
+            description=self.description_input.value,
+            color=GAME_COLOR
+        )
+        if self.thumbnail.value.lower() == "yes":
+            embed.set_thumbnail(url=interaction.guild.icon.url)
+        embed.set_footer(text="Chaotic Wolves", icon_url=interaction.guild.icon.url)
+
+        if self.image_url_input.value:
+            embed.set_image(url=self.image_url_input.value)
+
+        if self.fields_input.value:
+            field_pairs = self.fields_input.value.split(',')
+            for pair in field_pairs:
+                name, value = pair.split(':', 1)
+                embed.add_field(name=name.strip(), value=value.strip(), inline=False)
+
+        await interaction.response.send_message(embed=embed)
+
+# Event: on_message
 @bot.event
 async def on_message(message):
-    if message.author == bot.user: #ignore message from bot itself
+    if message.author == bot.user:
         return
 
-    # Define a regular expression for detecting links
     link_pattern = re.compile(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
 
-    # Check if the message contains a link
     if link_pattern.search(message.content):
         moderator_role = discord.utils.get(message.guild.roles, name='Moderator')
         founder_role = discord.utils.get(message.guild.roles, name='Founder')
 
-        # Check if the user has either the "Moderator" or "Founder" role
         if founder_role not in message.author.roles and moderator_role not in message.author.roles:
             await message.delete()
             await message.channel.send(f'{message.author.mention}, links are not allowed here! Please follow the rules. https://discord.com/channels/1190688700988936192/1190689150849011762')
 
     await bot.process_commands(message)
 
-
+# Event: on_member_update
 @bot.event
 async def on_member_update(before, after):
     verified_role = discord.utils.get(after.roles, name=VERIFIED_ROLE_NAME)
-
-    # Check if the "Verified Wolf" role was added during the update
     if verified_role is not None and verified_role not in before.roles and verified_role in after.roles:
-        # Calculate online, offline, and non-offline member counts
-        #online_members = sum(1 for m in after.guild.members if m.status == Status.online)
         offline_members = sum(1 for m in after.guild.members if m.status == Status.offline)
         non_offline_members = len(after.guild.members) - offline_members
 
-        # Send a message to the bot logs channel
         bot_logs_channel = after.guild.get_channel(BOT_LOGS_CHANNEL_ID)
         if bot_logs_channel is not None:
-            await bot_logs_channel.send(f'{after.mention} Has joined the server and verified!!. \n **Offline Members:** __{offline_members}__,\n **Online Members:** __{non_offline_members}__,\n **Total members:** __{len(after.guild.members)}__')
+            await bot_logs_channel.send(f'{after.mention} has joined the server and verified! \n **Offline Members:** __{offline_members}__,\n **Online Members:** __{non_offline_members}__,\n **Total Members:** __{len(after.guild.members)}__')
 
+# Slash Commands
 @bot.tree.command(name="help", description="Get some help!")
 async def help(interaction: discord.Interaction):
-    await interaction.response.send_message("Try using `/guess` To play the guessing game or `/hangman` To play Hangman!, `/cardgame` To play Card Guessing Game, `/fact`To see cool fact, `/joke` To see a cool joke")
+    embed = discord.Embed(
+        title="Help",
+        description="Here is how to interact with the bot:",
+        color=GAME_COLOR
+    )
+    embed.add_field(name="`/guess`", value="To play the guessing game", inline=False)
+    embed.add_field(name="`/hangman`", value="To play Hangman game", inline=False)
+    embed.add_field(name="`/cardgame`", value="To play Card Guessing Game", inline=False)
+    embed.add_field(name="`/fact`", value="To see a cool fact", inline=False)
+    embed.add_field(name="`/joke`", value="To see a cool joke", inline=False)
+    embed.add_field(name="`send_embed`", value="To send an embed (for administrators only)", inline=False)
+    embed.add_field(name="`help`", value="To show this message", inline=False)
+    embed.set_thumbnail(url=interaction.guild.icon.url)
+    embed.set_footer(text=interaction.guild.name, icon_url=interaction.guild.icon.url)
 
-"Some cool games you can play with slash commands"
+    await interaction.response.send_message(embed=embed)
+
+@bot.tree.command(name="send_embed", description="Send a customized embed message")
+async def send_embed(interaction: discord.Interaction):
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
+        return
+
+    try:
+        await interaction.response.send_modal(EmbedModal())
+    except Exception as e:
+        await interaction.response.send_message(f"An error occurred: {str(e)}", ephemeral=True)
 
 @bot.tree.command(name="guess", description="Play the Number Guessing Game")
 async def play_guess(interaction: discord.Interaction):
@@ -103,7 +160,7 @@ async def play_guess(interaction: discord.Interaction):
 
 @bot.tree.command(name="hangman", description="Play Hangman")
 async def play_hangman(interaction: discord.Interaction):
-    words = ["chaotic", "wolves", "Alpha", "collection", "nfts", "wolf","hunter","art","solana","Blockchain","Token","Digital"]
+    words = ["chaotic", "wolves", "Alpha", "collection", "nfts", "wolf", "hunter", "art", "solana", "Blockchain", "Token", "Digital"]
     chosen_word = random.choice(words).lower()
     guessed_word = ["_"] * len(chosen_word)
     incorrect_guesses = 0
@@ -113,7 +170,7 @@ async def play_hangman(interaction: discord.Interaction):
     def display_word():
         return " ".join(guessed_word)
 
-    await interaction.response.send_message(f"Welcome to Hangman, {interaction.user.mention}! Try to guess the word enter letter by letter !!: `{display_word()}`")
+    await interaction.response.send_message(f"Welcome to Hangman, {interaction.user.mention}! Try to guess the word letter by letter: `{display_word()}`")
 
     while incorrect_guesses < max_attempts and "_" in guessed_word:
         try:
@@ -139,46 +196,33 @@ async def play_hangman(interaction: discord.Interaction):
             return
 
     if "_" not in guessed_word:
-        await interaction.followup.send(f"{interaction.user.mention}Congratulations! You guessed the word: `{chosen_word}`")
+        await interaction.followup.send(f"{interaction.user.mention} Congratulations! You guessed the word: `{chosen_word}`")
     else:
         await interaction.followup.send(f"Sorry, you ran out of attempts. The correct word was: `{chosen_word}`")
 
 @bot.tree.command(name="cardgame", description="Play the Card Guessing Game")
 async def play_card_game(interaction: discord.Interaction):
     suits = ["Hearts", "Diamonds", "Clubs", "Spades"]
-    ranks = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "Jack", "Queen", "King", "Ace"]
+    ranks = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
 
-    chosen_suit = random.choice(suits)
-    chosen_rank = random.choice(ranks)
+    chosen_card = f"{random.choice(ranks)} of {random.choice(suits)}"
 
-    await interaction.response.send_message(f"Welcome to the Card Guessing Game, {interaction.user.mention}! Try to guess the suit and rank of the card.")
+    await interaction.response.send_message(f"Guess the card! Enter the rank and suit separated by 'of', e.g., '7 of Hearts'.")
 
-    attempts = 0
+    try:
+        guess_payload = await bot.wait_for("message", check=lambda m: m.author == interaction.user, timeout=30.0)
+        user_guess = guess_payload.content.strip().title()
 
-    while attempts < 3:
-        try:
-            user_suit_payload = await bot.wait_for("message", check=lambda m: m.author == interaction.user, timeout=30.0)
-            user_suit = user_suit_payload.content.capitalize()
+        if user_guess == chosen_card:
+            await interaction.followup.send(f"Congratulations! You guessed the correct card: {chosen_card}")
+        else:
+            await interaction.followup.send(f"Sorry, the correct card was: {chosen_card}")
 
-            user_rank_payload = await bot.wait_for("message", check=lambda m: m.author == interaction.user, timeout=30.0)
-            user_rank = user_rank_payload.content.capitalize()
+    except asyncio.TimeoutError:
+        await interaction.followup.send("Time's up! The game has ended.")
 
-            attempts += 1
-
-            if user_suit == chosen_suit and user_rank == chosen_rank:
-                await interaction.followup.send(f"{interaction.user.mention} Congratulations! You guessed the correct card ({chosen_rank} of {chosen_suit}) in {attempts} attempts.")
-                return
-            else:
-                await interaction.followup.send(f"Wrong guess! Attempts left: {3 - attempts}. Try again.")
-
-        except asyncio.TimeoutError:
-            await interaction.followup.send("Time's up! The game has ended.")
-            return
-
-    await interaction.followup.send(f"You reached the maximum number of attempts! The correct card was {chosen_rank} of {chosen_suit}.")
-
-@bot.tree.command(name="joke", description="Get a good laugh with a random joke.")
-async def get_joke(interaction: discord.Interaction):
+@bot.tree.command(name="joke", description="Get a random joke")
+async def tell_joke(interaction: discord.Interaction):
     jokes = [
         "Why don't scientists trust atoms? Because they make up everything!",
         "Parallel lines have so much in common. It's a shame they'll never meet.",
@@ -225,20 +269,12 @@ async def get_joke(interaction: discord.Interaction):
         "I asked the librarian if the library had books on paranoia. She whispered, 'They're right behind you.'"
     ]
 
-    random_joke = random.choice(jokes)
+    joke = random.choice(jokes)
+    await interaction.response.send_message(joke)
 
-    embed = discord.Embed(
-        title="🌟 Random Joke",
-        description=f"**{random_joke}**",
-        color=discord.Color.blurple()  # You can customize the color
-    )
-
-    # Send the embed
-    await interaction.response.send_message(embed=embed)
-
-@bot.tree.command(name="fact", description="get some cool facts")
-async def get_random_fact(interaction: discord.Interaction):
-    random_facts =[
+@bot.tree.command(name="fact", description="Get a random fact")
+async def tell_fact(interaction: discord.Interaction):
+    facts =[
         
         "The Eiffel Tower can be 15 cm taller during the summer due to thermal expansion.",
         "Honey never spoils. Archaeologists have found pots of honey in ancient Egyptian tombs that are over 3,000 years old and still perfectly edible.",
@@ -279,15 +315,8 @@ async def get_random_fact(interaction: discord.Interaction):
         "The oldest known animal on Earth is the sponge.",
     ]
 
-    random_fact = random.choice(random_facts)
+    fact = random.choice(facts)
+    await interaction.response.send_message(fact)
 
-    embed = discord.Embed(
-        title="🌟 Random Fact",
-        description=f"**{random_fact}**",
-        color=discord.Color.blurple()  # You can customize the color
-    )
-
-    
-    await interaction.response.send_message(embed=embed)
-    
+# Run the bot
 bot.run(TOKEN)
